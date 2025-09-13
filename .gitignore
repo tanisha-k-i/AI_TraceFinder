@@ -1,0 +1,6 @@
+Python virtual environment
+.venv/
+
+Ignore the dataset folders
+Official/
+data_root/

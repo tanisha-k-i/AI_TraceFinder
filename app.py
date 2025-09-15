@@ -4,12 +4,19 @@ import numpy as np
 import os
 import cv2
 from PIL import Image
+import base64
 from scipy.stats import skew, kurtosis, entropy
 
 
 st.set_page_config(page_title="Forgery Dataset Feature Extractor", layout="wide")
 st.title("✍️ Forged Handwritten Document Database - Auto Class Detection & Feature Extraction")
 
+# Add a download link for the CSV
+def download_button(df, filename):
+    csv_string = df.to_csv(index=False)
+    b64 = base64.b64encode(csv_string.encode()).decode()
+    href = f'<a href="data:file/csv;base64,{b64}" download="{filename}" style="text-decoration: none; padding: 10px; color: white; background-color: #4CAF50; border-radius: 5px;">Download {filename}</a>'
+    return st.markdown(href, unsafe_allow_html=True)
 
 
 def extract_features(image_path, main_class, resolution):
@@ -77,6 +84,9 @@ dataset_root = st.text_input(" Enter dataset root path:", "")
 if dataset_root and os.path.isdir(dataset_root):
     st.info("🔎 Scanning dataset...")
     records = []
+    
+    # Debugging: Show the path that was entered.
+    st.write(f"📂 Entered path: {dataset_root}")
 
     # Top-level classes
     main_classes = [f for f in os.listdir(dataset_root) if os.path.isdir(os.path.join(dataset_root, f))]
@@ -84,26 +94,36 @@ if dataset_root and os.path.isdir(dataset_root):
 
     for main_class in main_classes:
         main_class_path = os.path.join(dataset_root, main_class)
+        st.write(f"  🔍 Scanning main class: {main_class_path}")
 
-        # Subfolders (150, 300)
-        subfolders = [sf for sf in os.listdir(main_class_path) if os.path.isdir(os.path.join(main_class_path, sf))]
+        # Recursively find all image files within the main class folder
+        image_files = []
+        for root, dirs, files in os.walk(main_class_path):
+            for file in files:
+                if file.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
+                    image_files.append(os.path.join(root, file))
 
-        for sub in subfolders:
-            sub_path = os.path.join(main_class_path, sub)
+        st.write(f"      Class '{main_class}' → {len(image_files)} images")
 
-            # Collect images (including .tif)
-            files = [f for f in os.listdir(sub_path) if f.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff"))]
+        for path in image_files:
+            # Extract resolution from path (assuming it's in the folder name)
+            resolution = "unknown"
+            if "150" in path:
+                resolution = "150"
+            elif "300" in path:
+                resolution = "300"
 
-            st.write(f" Class '{main_class}/{sub}' → {len(files)} images")
-            for fname in files:
-                path = os.path.join(sub_path, fname)
-                rec = extract_features(path, main_class, sub)
-                records.append(rec)
+            rec = extract_features(path, main_class, resolution)
+            records.append(rec)
 
     # Convert to DataFrame
     df = pd.DataFrame(records)
+    
     st.subheader(" Features Extracted (Preview)")
-    st.dataframe(df.head(20))
+    if not df.empty:
+        st.dataframe(df.head(20))
+    else:
+        st.info("No features extracted. Please check your dataset path and file structure.")
 
     # Save features
     save_path = os.path.join(dataset_root, "metadata_features.csv")
@@ -123,15 +143,15 @@ if dataset_root and os.path.isdir(dataset_root):
     for idx, row in df.iterrows():
         cls_label = row["class_label"]
         if cls_label not in shown_classes:
-            sample_path = os.path.join(dataset_root, row["main_class"], row["resolution"], row["file_name"])
+            sample_path = os.path.join(dataset_root, row["main_class"], row["file_name"])
             if os.path.exists(sample_path):
                 try:
                     img = Image.open(sample_path)
                     cols[len(shown_classes) % 5].image(img, caption=cls_label, width="stretch")
                     shown_classes.add(cls_label)
-                except:
-                    st.warning(f"⚠️ Could not display sample image: {sample_path}")
-
+                except Exception as e:
+                    st.warning(f"⚠️ Could not display sample image: {sample_path} - {e}")
+                    st.write(f"Debug: Image path exists but could not be opened. Check file permissions or corruption.")
 else:
     if dataset_root:
         st.error("❌ Invalid dataset path. Please enter a valid folder.")

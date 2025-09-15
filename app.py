@@ -18,6 +18,12 @@ def download_button(df, filename):
     href = f'<a href="data:file/csv;base64,{b64}" download="{filename}" style="text-decoration: none; padding: 10px; color: white; background-color: #4CAF50; border-radius: 5px;">Download {filename}</a>'
     return st.markdown(href, unsafe_allow_html=True)
 
+def extract_device_name(path):
+    device_names = ["Canon120", "Canon220", "Canon9000", "EpsonV39", "EpsonV370", "EpsonV550", "HP"]
+    for device in device_names:
+        if device in path:
+            return device
+    return "unknown_device"
 
 def extract_features(image_path, main_class, resolution):
     try:
@@ -51,12 +57,14 @@ def extract_features(image_path, main_class, resolution):
         # Edge features
         edges = cv2.Canny(gray, 100, 200)
         edge_density = np.mean(edges > 0)
-
+        
+        device_name = extract_device_name(image_path)
+        
         return {
             "file_name": os.path.basename(image_path),
             "main_class": main_class,
             "resolution": resolution,
-            "class_label": f"{main_class}_{resolution}",
+            "class_label": device_name,
             "width": width,
             "height": height,
             "aspect_ratio": aspect_ratio,
@@ -76,7 +84,6 @@ def extract_features(image_path, main_class, resolution):
             "class_label": f"{main_class}_{resolution}",
             "error": str(e)
         }
-
 
 
 dataset_root = st.text_input(" Enter dataset root path:", "")
@@ -122,6 +129,7 @@ if dataset_root and os.path.isdir(dataset_root):
     st.subheader(" Features Extracted (Preview)")
     if not df.empty:
         st.dataframe(df.head(20))
+        download_button(df, "metadata_features.csv")
     else:
         st.info("No features extracted. Please check your dataset path and file structure.")
 

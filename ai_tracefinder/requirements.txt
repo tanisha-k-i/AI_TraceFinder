@@ -1,0 +1,12 @@
+# requirements.txt
+streamlit
+tensorflow # Or tensorflow-macos if on Apple Silicon
+numpy
+opencv-python-headless
+scikit-learn
+scikit-image
+PyWavelets
+pandas
+Pillow # For Image handling in Streamlit
+seaborn # For plotting confusion matrix (optional for performance page)
+matplotlib # For plotting (optional for performance page)

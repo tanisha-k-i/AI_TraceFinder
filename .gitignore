@@ -1,0 +1,25 @@
+# Virtual environment - keep locally but don't push to GitHub
+venv/
+.env/
+.venv/
+
+# Large model files - keep locally but don't push
+models/
+*.pkl
+*.keras
+*.h5
+
+# Data files - keep locally
+data/
+results/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints/
